@@ -1,46 +1,1069 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Portal</title>
+    <title>Fence Wizard Portal</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
         }
-        h1 {
-            color: #333;
+    
+        .drop-area .icon {
+            font-size: 48px;
+            color: #ccc;
         }
-        input, button {
-            margin: 10px 0;
-            padding: 10px;
+    
+        .drop-area p {
+            margin: 0;
             font-size: 16px;
+            color: #ccc;
         }
-        #result {
-            margin-top: 20px;
-            font-weight: bold;
+    
+        .drop-area.highlight {
+            border-color: #000;
         }
     </style>
-    <script>
-        async function validateText() {
-            const text = document.getElementById('inputText').value;
-            const response = await fetch('/api/validate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ text })
-            });
-            const data = await response.json();
-            document.getElementById('result').innerText = data.validatedText;
+    <style>
+        body {
+            background-color: #f4f4f4;
         }
-    </script>
+        .container {
+            margin-top: 50px;
+        }
+        .hidden {
+            display: none;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .checkbox-group label {
+            margin-right: 15px;
+        }
+        table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th {
+            font-weight: bold;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        td {
+            padding: 8px;
+            text-align: center;
+        }
+        td[contenteditable="true"] {
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 6px;
+            background-color: #fff;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+        }
+        .add-row-btn {
+            margin: 10px 0;
+            cursor: pointer;
+            color: #007bff;
+        }
+        footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <h1>Web Portal</h1>
-    <input type="text" id="inputText" placeholder="Enter text">
-    <button onclick="validateText()">Validate</button>
-    <p id="result"></p>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Existing content here -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h2 class="card-title">Project Information</h2>
+                        <div class="form-group">
+                            <label for="projectManager">Project Manager</label>
+                            <input type="text" id="projectManager" class="form-control" placeholder="Enter Project Manager">
+                        </div>
+                        <div class="form-group">
+                            <label for="pmaEmail">PMA Email</label>
+                            <input type="email" id="pmaEmail" class="form-control" placeholder="Enter PMA Email">
+                        </div>
+                        <div class="form-group">
+                            <label for="jobName">Job Name</label>
+                            <input type="text" id="jobName" class="form-control" placeholder="Enter Job Name">
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h2 class="card-title">Scope of Work</h2>
+                        <div class="form-group">
+                            <label for="scopeOfWork">Scope of Work</label>
+                            <textarea id="scopeOfWork" class="form-control" rows="5" placeholder="Enter Scope of Work"></textarea>
+                        </div>
+                        <button id="generateScope" class="btn btn-primary">Generate Scope</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="card-title">Summary</h2>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Direct Costs</th>
+                                    <th>Totals</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td contenteditable="true">Total Material Costs</td>
+                                    <td contenteditable="true" id="totalMaterialCosts">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td contenteditable="true">Total Labor Costs</td>
+                                    <td contenteditable="true" id="totalLaborCosts">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td contenteditable="true">Total Equipment Costs</td>
+                                    <td contenteditable="true" id="totalEquipmentCosts">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td contenteditable="true">Total Operator Costs</td>
+                                    <td contenteditable="true" id="totalOperatorCosts">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td contenteditable="true">Total Other Costs</td>
+                                    <td contenteditable="true" id="totalOtherCosts">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td contenteditable="true"><strong>Total Direct Costs</strong></td>
+                                    <td contenteditable="true" id="totalDirectCosts"><strong>$0.00</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="form-group">
+                            <label for="overhead">Total Cost Plus Overhead</label>
+                            <input type="text" id="overhead" class="form-control" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="profitPercentage">Adjust Profit Percentage</label>
+                            <input type="number" id="profitPercentage" class="form-control" value="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="totalEstimate">Total Estimate</label>
+                            <input type="text" id="totalEstimate" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Bid Amount</h2>
+                <div class="form-group">
+                    <input type="number" id="bidAmount" class="form-control" placeholder="Enter bid amount">
+                </div>
+                <button id="nextToMaterial" class="btn btn-primary">Next</button>
+            </div>
+        </div>
+        
+        <div class="form-group mt-4">
+            <label for="fileUpload">Upload Files</label>
+            <div id="drop-area" class="drop-area">
+                <div class="icon">+</div>
+                <p>drag files here</p>
+                <input type="file" id="fileElem" multiple accept="application/pdf, image/*" style="display:none">
+            </div>
+        </div>
+        <div id="materialSelection" class="card mt-4 hidden">
+            <div class="card-body">
+                <h2 class="card-title">Material Selection</h2>
+                <div class="form-group checkbox-group">
+                    <label><input type="checkbox" value="Chain Link"> Chain Link</label>
+                    <label><input type="checkbox" value="Aluminum"> Aluminum</label>
+                    <label><input type="checkbox" value="Wood"> Wood</label>
+                    <label><input type="checkbox" value="PVC"> PVC</label>
+                    <label><input type="checkbox" value="Other"> Other</label>
+                </div>
+                <button id="nextToGate" class="btn btn-primary">Next</button>
+            </div>
+        </div>
+        <div id="gateSelection" class="card mt-4 hidden">
+            <div class="card-body">
+                <h2 class="card-title">Gate Selection</h2>
+                <div class="form-group">
+                    <select id="gateOption" class="form-control">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </div>
+                <button id="showBreakdown" class="btn btn-primary">Show Breakdown</button>
+            </div>
+        </div>
+        <div id="gateBreakdown" class="breakdown-section mt-4 hidden">
+            <h2>Gate Cost Breakdown</h2>
+            <div id="gateCostTable" class="table-responsive"></div>
+            <div class="add-row-btn" onclick="addRow('gateCostTable')">+ Add Row</div>
+        </div>
+        <div id="materialBreakdowns" class="breakdown-section mt-4 hidden"></div>
+        <div id="additionalBreakdowns" class="breakdown-section mt-4 hidden">
+            <h2>Labor Cost Breakdown</h2>
+            <div id="laborCostTable" class="table-responsive"></div>
+            <div class="add-row-btn" onclick="addRow('laborCostTable')">+ Add Row</div>
+            <h2>Equipment Cost Breakdown</h2>
+            <div id="equipmentCostTable" class="table-responsive"></div>
+            <div class="add-row-btn" onclick="addRow('equipmentCostTable')">+ Add Row</div>
+            <h2>Operator Cost Breakdown</h2>
+            <div id="operatorCostTable" class="table-responsive"></div>
+            <div class="add-row-btn" onclick="addRow('operatorCostTable')">+ Add Row</div>
+            <h2>Miscellaneous Cost Breakdown</h2>
+            <div id="miscCostTable" class="table-responsive"></div>
+            <div class="add-row-btn" onclick="addRow('miscCostTable')">+ Add Row</div>
+        </div>
+    </div>
+    <footer>
+        &copy; 2023 Fence Wizard
+    </footer>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileElem = document.getElementById('fileElem');
+    
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+    
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+    
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+    
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+    
+        // Handle click to open file dialog
+        dropArea.addEventListener('click', () => fileElem.click());
+    
+        // Handle file selection from file dialog
+        fileElem.addEventListener('change', handleFiles, false);
+    
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+    
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+    
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles({ target: { files } });
+        }
+    
+        function handleFiles(e) {
+            const files = e.target.files;
+            [...files].forEach(uploadFile);
+        }
+    
+        function uploadFile(file) {
+            const url = 'YOUR_UPLOAD_URL'; // Replace with your upload URL
+            const formData = new FormData();
+            formData.append('file', file);
+    
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('File uploaded successfully:', data);
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+            });
+        }
+    </script>
+    <script>
+        function showMaterialSelection() {
+            const bidAmount = parseFloat(document.getElementById('bidAmount').value);
+            document.getElementById('materialSelection').classList.remove('hidden');
+        }
+
+        function showGateSelection() {
+            document.getElementById('gateSelection').classList.remove('hidden');
+        }
+
+        function showBreakdown() {
+    const gateOption = document.getElementById('gateOption').value;
+    const materialBreakdowns = document.getElementById('materialBreakdowns');
+    materialBreakdowns.innerHTML = ''; // Clear previous content
+
+    const selectedMaterials = document.querySelectorAll('#materialSelection input[type="checkbox"]:checked');
+    selectedMaterials.forEach(material => {
+        const materialType = material.value;
+        const breakdownSection = document.createElement('div');
+        breakdownSection.className = 'breakdown-section mt-4';
+        breakdownSection.innerHTML = `<h2>${materialType} Cost Breakdown</h2>`;
+        const table = createMaterialCostTable(10);
+        breakdownSection.appendChild(table);
+        breakdownSection.innerHTML += '<div class="add-row-btn" onclick="addRow(this.previousElementSibling.id)">+ Add Row</div>';
+        materialBreakdowns.appendChild(breakdownSection);
+    });
+
+    if (selectedMaterials.length > 0) {
+        materialBreakdowns.classList.remove('hidden');
+    } else {
+        materialBreakdowns.classList.add('hidden');
+    }
+
+    if (gateOption === 'Yes') {
+        document.getElementById('gateBreakdown').classList.remove('hidden');
+        updateGateCostTable();
+    } else {
+        document.getElementById('gateBreakdown').classList.add('hidden');
+    }
+
+    document.getElementById('additionalBreakdowns').classList.remove('hidden');
+    updateLaborCostTable();
+    updateEquipmentCostTable();
+    updateOperatorCostTable();
+    updateMiscCostTable();
+
+    // Attach event listeners to all editable cells
+    const editableCells = document.querySelectorAll('td[contenteditable="true"]');
+    editableCells.forEach(cell => {
+        cell.addEventListener('input', calculateTotals);
+    });
+
+    calculateTotals(); // Initial calculation
+}
+
+        function updateGateCostTable() {
+            const gateCostTable = document.getElementById('gateCostTable');
+            gateCostTable.innerHTML = ''; // Clear previous content
+            gateCostTable.appendChild(createMaterialCostTable(7));
+        }
+
+        function updateLaborCostTable() {
+            const laborCostTable = document.getElementById('laborCostTable');
+            laborCostTable.innerHTML = ''; // Clear previous content
+            laborCostTable.appendChild(createLaborCostTable(3));
+        }
+
+        function updateEquipmentCostTable() {
+            const equipmentCostTable = document.getElementById('equipmentCostTable');
+            equipmentCostTable.innerHTML = ''; // Clear previous content
+            equipmentCostTable.appendChild(createEquipmentCostTable(5));
+        }
+
+        function updateOperatorCostTable() {
+            const operatorCostTable = document.getElementById('operatorCostTable');
+            operatorCostTable.innerHTML = ''; // Clear previous content
+            operatorCostTable.appendChild(createOperatorCostTable(4));
+        }
+
+        function updateMiscCostTable() {
+            const miscCostTable = document.getElementById('miscCostTable');
+            miscCostTable.innerHTML = ''; // Clear previous content
+            miscCostTable.appendChild(createMiscCostTable(1));
+        }
+
+        function createLaborCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'laborCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Hour</th>
+                    <th>Total Hours</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+        function createEquipmentCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'equipmentCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Day</th>
+                    <th>Cost Per Week</th>
+                    <th>Cost Per Month</th>
+                    <th>Total Days</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+        function createOperatorCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'operatorCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Day</th>
+                    <th>Cost Per Week</th>
+                    <th>Cost Per Month</th>
+                    <th>Total Days</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+        function createMiscCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'miscCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Day</th>
+                    <th>Cost Per Week</th>
+                    <th>Cost Per Month</th>
+                    <th>Total Days</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+        function createMaterialCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'materialCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Qty</th>
+                    <th>Item</th>
+                    <th>Description (Specify Type/Size)</th>
+                    <th>PM Notes</th>
+                    <th>Inventory ID</th>
+                    <th>Average Cost</th>
+                    <th>Actual Cost (per unit)</th>
+                    <th>Total</th>
+                </tr>
+            `;
+
+            const items = [
+                'PIPE', 'PIPE',
+                'FABRIC', 'FABRIC',
+                'FITTINGS', 'FITTINGS'
+            ];
+
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true">${item}</td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Add additional rows if needed
+            for (let i = items.length; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+                // Add this function definition
+        function attachCalculationHandlers(tablemId) {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+        
+            table.querySelectorAll('tbody tr').forEach(row => {
+                const qtyCell = row.cells[0]; // Assuming QTY is the first column
+                const costCell = row.cells[6]; // Assuming ActualCostPerUnit is the seventh column
+                const totalCell = row.cells[7]; // Assuming Total is the eighth column
+        
+                function calculateTotal() {
+                    const qty = parseFloat(qtyCell.innerText) || 0;
+                    const cost = parseFloat(costCell.innerText) || 0;
+                    const total = qty * cost;
+                    totalCell.innerText = `$${total.toFixed(2)}`;
+                }
+        
+                qtyCell.addEventListener('input', calculateTotal);
+                costCell.addEventListener('input', calculateTotal);
+            });
+        }
+        
+        // Call this function after the tables are created
+        document.addEventListener('DOMContentLoaded', () => {
+            attachCalculationHandlers('chainLinkCostTable');
+            attachCalculationHandlers('aluminumCostTable');
+            attachCalculationHandlers('woodCostTable');
+            attachCalculationHandlers('pvcCostTable');
+            attachCalculationHandlers('otherCostTable');
+            attachCalculationHandlers('gateCostTable');
+        });
+
+        function createEquipmentCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'equipmentCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Day</th>
+                    <th>Cost Per Week</th>
+                    <th>Cost Per Month</th>
+                    <th>Total Days</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+        function createOperatorCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'operatorCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Day</th>
+                    <th>Cost Per Week</th>
+                    <th>Cost Per Month</th>
+                    <th>Total Days</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+
+        function createMiscCostTable(rows) {
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = 'miscCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Cost Per Day</th>
+                    <th>Cost Per Week</th>
+                    <th>Cost Per Month</th>
+                    <th>Total Days</th>
+                    <th>TOTAL</th>
+                </tr>
+            `;
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            return table;
+        }
+        
+        document.getElementById('nextToMaterial').addEventListener('click', showMaterialSelection);
+        document.getElementById('nextToGate').addEventListener('click', showGateSelection);
+        document.getElementById('showBreakdown').addEventListener('click', showBreakdown);
+    </script>
+   <script>
+    function generateExcel() {
+    const projectManager = document.getElementById('projectManager').value;
+    const pmaEmail = document.getElementById('pmaEmail').value;
+    const jobName = document.getElementById('jobName').value;
+    const scopeOfWork = document.getElementById('scopeOfWork').value;
+    const totalEstimate = document.getElementById('totalEstimate').value;
+
+    // Define the structure of the Excel file
+    const data = [
+        ['Project Information'],
+        ['Project Manager', projectManager],
+        ['PMA Email', pmaEmail],
+        ['Job Name', jobName],
+        [],
+        ['Scope of Work'],
+        [scopeOfWork],
+        [],
+        ['Total Estimate', totalEstimate]
+    ];
+
+    // Create a new workbook and a worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Estimate');
+
+    // Export the Excel file
+    XLSX.writeFile(wb, 'Estimate.xlsx');
+}
+
+document.getElementById('generateScope').addEventListener('click', generateExcel);
+    function calculateTotals() {
+        const totalMaterialCosts = calculateMaterialTableTotal();
+        const totalLaborCosts = calculateTableTotal('laborCostTable');
+        const totalEquipmentCosts = calculateTableTotal('equipmentCostTable');
+        const totalOperatorCosts = calculateTableTotal('operatorCostTable');
+        const totalOtherCosts = calculateTableTotal('miscCostTable');
+
+        document.getElementById('totalMaterialCosts').innerText = `$${totalMaterialCosts.toFixed(2)}`;
+        document.getElementById('totalLaborCosts').innerText = `$${totalLaborCosts.toFixed(2)}`;
+        document.getElementById('totalEquipmentCosts').innerText = `$${totalEquipmentCosts.toFixed(2)}`;
+        document.getElementById('totalOperatorCosts').innerText = `$${totalOperatorCosts.toFixed(2)}`;
+        document.getElementById('totalOtherCosts').innerText = `$${totalOtherCosts.toFixed(2)}`;
+
+        const totalDirectCosts = totalMaterialCosts + totalLaborCosts + totalEquipmentCosts + totalOperatorCosts + totalOtherCosts;
+        document.getElementById('totalDirectCosts').innerText = `$${totalDirectCosts.toFixed(2)}`;
+
+        const overhead = totalDirectCosts * 1.1; // Assuming 10% overhead
+        document.getElementById('overhead').value = `$${overhead.toFixed(2)}`;
+
+        const profitPercentage = parseFloat(document.getElementById('profitPercentage').value) / 100;
+        const totalEstimate = overhead * (1 + profitPercentage);
+        document.getElementById('totalEstimate').value = `$${totalEstimate.toFixed(2)}`;
+    }
+
+    function calculateMaterialTableTotal() {
+        const materialBreakdowns = document.getElementById('materialBreakdowns');
+        let total = 0;
+
+        const tables = materialBreakdowns.querySelectorAll('table');
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const lastCell = cells[cells.length - 1];
+                const value = parseFloat(lastCell.innerText.replace('$', '')) || 0;
+                total += value;
+            });
+        });
+
+        return total;
+    }
+
+    function calculateTableTotal(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return 0;
+
+        let total = 0;
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const lastCell = cells[cells.length - 1];
+            const value = parseFloat(lastCell.innerText.replace('$', '')) || 0;
+            total += value;
+        });
+
+        return total;
+    }
+
+    function correctGrammarAndPunctuation(text) {
+        // Basic grammar and punctuation corrections
+        text = text.replace(/\bi\b/g, 'I'); // Capitalize "i"
+        text = text.replace(/([.?!])\s*(?=[a-zA-Z])/g, '$1 '); // Ensure space after punctuation
+        text = text.replace(/([a-z])([A-Z])/g, '$1. $2'); // Add period between sentences without punctuation
+        return text;
+    }
+
+    document.getElementById('generateScope').addEventListener('click', () => {
+        const scopeOfWork = document.getElementById('scopeOfWork').value;
+        const correctedScope = correctGrammarAndPunctuation(scopeOfWork);
+        document.getElementById('scopeOfWork').value = correctedScope;
+    });
+
+    document.getElementById('profitPercentage').addEventListener('input', calculateTotals);
+    document.getElementById('showBreakdown').addEventListener('click', showBreakdown);
+
+    window.addEventListener('load', calculateTotals);
+
+    function showBreakdown() {
+        const gateOption = document.getElementById('gateOption').value;
+        const materialBreakdowns = document.getElementById('materialBreakdowns');
+        materialBreakdowns.innerHTML = ''; // Clear previous content
+
+        const selectedMaterials = document.querySelectorAll('#materialSelection input[type="checkbox"]:checked');
+        selectedMaterials.forEach(material => {
+            const materialType = material.value;
+            const breakdownSection = document.createElement('div');
+            breakdownSection.className = 'breakdown-section mt-4';
+            breakdownSection.innerHTML = `<h2>${materialType} Cost Breakdown</h2>`;
+            const table = createMaterialCostTable(10);
+            breakdownSection.appendChild(table);
+            breakdownSection.innerHTML += '<div class="add-row-btn" onclick="addRow(this.previousElementSibling.id)">+ Add Row</div>';
+            materialBreakdowns.appendChild(breakdownSection);
+        });
+
+        if (selectedMaterials.length > 0) {
+            materialBreakdowns.classList.remove('hidden');
+        } else {
+            materialBreakdowns.classList.add('hidden');
+        }
+
+        if (gateOption === 'Yes') {
+            document.getElementById('gateBreakdown').classList.remove('hidden');
+            updateGateCostTable();
+        } else {
+            document.getElementById('gateBreakdown').classList.add('hidden');
+        }
+
+        document.getElementById('additionalBreakdowns').classList.remove('hidden');
+        updateLaborCostTable();
+        updateEquipmentCostTable();
+        updateOperatorCostTable();
+        updateMiscCostTable();
+
+        // Attach event listeners to all editable cells
+        const editableCells = document.querySelectorAll('td[contenteditable="true"]');
+        editableCells.forEach(cell => {
+            cell.addEventListener('input', calculateTotals);
+        });
+
+        calculateTotals(); // Initial calculation
+    }
+</script>
+<script>
+    const equipmentData = [
+        { category: 'Attachments', day: 66.5, week: 174.5, month: 389.5 },
+        { category: 'Boom Lift', day: 368.0, week: 846.0, month: 1884.0 },
+        { category: 'Concrete Equipment', day: 101.5, week: 282.5, month: 676.0 },
+        { category: 'Compressor', day: 136.0, week: 386.0, month: 683.0 },
+        { category: 'Excavator', day: 480.0, week: 1332.5, month: 2902.5 },
+        { category: 'Generator', day: 82.5, week: 257.5, month: 612.5 },
+        { category: 'Jackhammer', day: 87.0, week: 261.5, month: 596.5 },
+        { category: 'Skidsteer', day: 325.0, week: 895.0, month: 1985.0 },
+        { category: 'Telehandler', day: 450.0, week: 1125.0, month: 2450.0 },
+        { category: 'Trailer', day: 115.0, week: 384.0, month: 799.0 },
+        { category: 'Utility Vehicle', day: 141.5, week: 323.0, month: 637.5 },
+        { category: 'Welder', day: 99.5, week: 234.0, month: 586.0 }
+    ];
+
+    function createEquipmentCostTable(rows) {
+        const table = document.createElement('table');
+        table.className = 'table table-bordered';
+        table.id = 'equipmentCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        thead.innerHTML = `
+            <tr>
+                <th>Category</th>
+                <th>Cost Per Day</th>
+                <th>Cost Per Week</th>
+                <th>Cost Per Month</th>
+                <th>Total Days</th>
+                <th>TOTAL</th>
+            </tr>
+        `;
+
+        for (let i = 0; i < rows; i++) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td contenteditable="true" class="autocomplete"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        // Attach autocomplete to the category cells
+        const categoryCells = table.querySelectorAll('.autocomplete');
+        categoryCells.forEach(cell => {
+            cell.addEventListener('input', function() {
+                const inputValue = cell.innerText.toLowerCase();
+                const suggestions = equipmentData.filter(item => item.category.toLowerCase().includes(inputValue));
+                if (suggestions.length === 1) {
+                    const selectedItem = suggestions[0];
+                    cell.innerText = selectedItem.category;
+                    const row = cell.parentElement;
+                    row.cells[1].innerText = selectedItem.day;
+                    row.cells[2].innerText = selectedItem.week;
+                    row.cells[3].innerText = selectedItem.month;
+                }
+            });
+        });
+
+        return table;
+    }
+
+    function handleEnterKey(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const currentCell = event.target;
+            const currentRow = currentCell.parentElement;
+            const tableBody = currentRow.parentElement;
+            const nextRow = currentRow.nextElementSibling;
+
+            if (nextRow) {
+                const nextCell = nextRow.cells[currentCell.cellIndex];
+                nextCell.focus();
+            } else {
+                // Add a new row if there is no next row
+                const newRow = currentRow.cloneNode(true);
+                newRow.querySelectorAll('td').forEach(cell => {
+                    cell.innerText = '';
+                    cell.addEventListener('keydown', handleEnterKey);
+                    cell.addEventListener('input', calculateRowTotal);
+                });
+                tableBody.appendChild(newRow);
+                const newCell = newRow.cells[currentCell.cellIndex];
+                newCell.focus();
+            }
+        }
+    }
+
+    function attachEnterKeyHandler() {
+        const editableCells = document.querySelectorAll('td[contenteditable="true"]');
+        editableCells.forEach(cell => {
+            cell.addEventListener('keydown', handleEnterKey);
+            cell.addEventListener('input', calculateRowTotal);
+        });
+    }
+
+    function calculateRowTotal(event) {
+        const currentCell = event.target;
+        const currentRow = currentCell.parentElement;
+        const qtyCell = currentRow.cells[0];
+        const costCell = currentRow.cells[2];
+        const totalCell = currentRow.cells[3];
+
+        const qty = parseFloat(qtyCell.innerText) || 0;
+        const cost = parseFloat(costCell.innerText) || 0;
+        const total = qty * cost;
+
+        totalCell.innerText = `$${total.toFixed(2)}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', attachEnterKeyHandler);
+</script>
+<script>
+    function handleEnterKey(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const currentCell = event.target;
+            const currentRow = currentCell.parentElement;
+            const tableBody = currentRow.parentElement;
+            const nextRow = currentRow.nextElementSibling;
+
+            if (nextRow) {
+                const nextCell = nextRow.cells[currentCell.cellIndex];
+                nextCell.focus();
+            } else {
+                // Add a new row if there is no next row
+                const newRow = currentRow.cloneNode(true);
+                newRow.querySelectorAll('td').forEach(cell => {
+                    cell.innerText = '';
+                    cell.addEventListener('keydown', handleEnterKey);
+                });
+                tableBody.appendChild(newRow);
+                const newCell = newRow.cells[currentCell.cellIndex];
+                newCell.focus();
+            }
+        }
+    }
+
+    function attachEnterKeyHandler() {
+        const editableCells = document.querySelectorAll('td[contenteditable="true"]');
+        editableCells.forEach(cell => {
+            cell.addEventListener('keydown', handleEnterKey);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', attachEnterKeyHandler);
+</script>
 </body>
 </html>
