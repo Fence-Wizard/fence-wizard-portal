@@ -910,6 +910,7 @@ document.getElementById('generateScope').addEventListener('click', generateExcel
         calculateTotals(); // Initial calculation
     }
 </script>
+
 <script>
     const equipmentData = [
         { category: 'Attachments', day: 66.5, week: 174.5, month: 389.5 },
@@ -926,7 +927,40 @@ document.getElementById('generateScope').addEventListener('click', generateExcel
         { category: 'Welder', day: 99.5, week: 234.0, month: 586.0 }
     ];
 
-    function createEquipmentCostTable(rows) {
+    const woodDescriptions = [
+        "1x4x4 dogear",
+        "1x6x4 dogear",
+        "1x6x5 flat",
+        "1x6x6 dogear",
+        "1x6x6 flat",
+        "5/8x6x6 Dogear",
+        "1x4x8",
+        "2x4x12",
+        "2x4x16",
+        "5/4x6x16",
+        "1x6x8",
+        "4x4x6 flat",
+        "4x4x6 gothic",
+        "4x4x7 flat",
+        "4x4x8 flat",
+        "4x4x8 gothic",
+        "4x4x9 flat",
+        "4x4x9 gothic",
+        "4x4x10",
+        "6x6x6 flat",
+        "6x6x6 gothic",
+        "6x6x8 flat",
+        "6x6x8 gothic",
+        "6x6x10 flat",
+        "6x6x10 gothic",
+        "14g x4'h x100' weld wire",
+        "28 per strip - 3\" galv nails",
+        "300 per coil - 2\"galv nail",
+        "QUIK ROK",
+        "concrete"
+    ];
+
+    function createEquipmentCostTable() {
         const table = document.createElement('table');
         table.className = 'table table-bordered';
         table.id = 'equipmentCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
@@ -944,7 +978,22 @@ document.getElementById('generateScope').addEventListener('click', generateExcel
             </tr>
         `;
 
-        for (let i = 0; i < rows; i++) {
+        equipmentData.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td contenteditable="true" class="autocomplete">${item.category}</td>
+                <td contenteditable="true">${item.day}</td>
+                <td contenteditable="true">${item.week}</td>
+                <td contenteditable="true">${item.month}</td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Add additional empty rows if needed
+        const additionalRows = 5; // Adjust the number of additional rows as needed
+        for (let i = 0; i < additionalRows; i++) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td contenteditable="true" class="autocomplete"></td>
@@ -973,11 +1022,124 @@ document.getElementById('generateScope').addEventListener('click', generateExcel
                     row.cells[1].innerText = selectedItem.day;
                     row.cells[2].innerText = selectedItem.week;
                     row.cells[3].innerText = selectedItem.month;
+                } else if (suggestions.length === 0) {
+                    // Clear the row if no suggestions match
+                    const row = cell.parentElement;
+                    row.cells[1].innerText = '';
+                    row.cells[2].innerText = '';
+                    row.cells[3].innerText = '';
+                }
+            });
+
+            cell.addEventListener('keydown', function(event) {
+                if (event.key === 'Backspace' || event.key === 'Delete') {
+                    const row = cell.parentElement;
+                    row.cells[1].innerText = '';
+                    row.cells[2].innerText = '';
+                    row.cells[3].innerText = '';
                 }
             });
         });
 
+        // Attach calculation handlers
+        attachCalculationHandlers(table);
+
         return table;
+    }
+
+    function createWoodCostTable(rows) {
+        const table = document.createElement('table');
+        table.className = 'table table-bordered';
+        table.id = 'woodCostTable' + Math.random().toString(36).substr(2, 9); // Unique ID for each table
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        thead.innerHTML = `
+            <tr>
+                <th>Qty</th>
+                <th>Description</th>
+                <th>Actual Cost (per unit)</th>
+                <th>Total</th>
+            </tr>
+        `;
+
+        woodDescriptions.forEach(description => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td contenteditable="true"></td>
+                <td contenteditable="true">${description}</td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Add additional empty rows if needed
+        for (let i = woodDescriptions.length; i < rows; i++) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        // Attach calculation handlers
+        attachCalculationHandlers(table);
+
+        return table;
+    }
+
+    function addRow(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const tbody = table.querySelector('tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+        `;
+        tbody.appendChild(row);
+
+        attachCalculationHandlersToRow(row);
+    }
+
+    function attachCalculationHandlers(table) {
+        if (!table || !table.querySelectorAll) return; // Ensure table is valid and has querySelectorAll method
+        table.querySelectorAll('tbody tr').forEach(row => {
+            attachCalculationHandlersToRow(row);
+        });
+    }
+
+    function attachCalculationHandlersToRow(row) {
+        const qtyCell = row.cells[0]; // Assuming QTY is the first column
+        const costCell = row.cells[2]; // Assuming Actual Cost Per Unit is the third column
+        const totalCell = row.cells[3]; // Assuming Total is the fourth column
+
+        function calculateTotal() {
+            const qty = parseFloat(qtyCell.innerText) || 0;
+            const cost = parseFloat(costCell.innerText) || 0;
+            const total = qty * cost;
+            totalCell.innerText = `$${total.toFixed(2)}`;
+        }
+
+        qtyCell.addEventListener('input', calculateTotal);
+        costCell.addEventListener('input', calculateTotal);
+    }
+
+    function attachEnterKeyHandler() {
+        const editableCells = document.querySelectorAll('td[contenteditable="true"]');
+        editableCells.forEach(cell => {
+            cell.addEventListener('keydown', handleEnterKey);
+        });
     }
 
     function handleEnterKey(event) {
@@ -993,43 +1155,112 @@ document.getElementById('generateScope').addEventListener('click', generateExcel
                 nextCell.focus();
             } else {
                 // Add a new row if there is no next row
-                const newRow = currentRow.cloneNode(true);
-                newRow.querySelectorAll('td').forEach(cell => {
-                    cell.innerText = '';
-                    cell.addEventListener('keydown', handleEnterKey);
-                    cell.addEventListener('input', calculateRowTotal);
-                });
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
                 tableBody.appendChild(newRow);
-                const newCell = newRow.cells[currentCell.cellIndex];
-                newCell.focus();
+
+                attachCalculationHandlersToRow(newRow);
             }
         }
     }
 
-    function attachEnterKeyHandler() {
-        const editableCells = document.querySelectorAll('td[contenteditable="true"]');
-        editableCells.forEach(cell => {
-            cell.addEventListener('keydown', handleEnterKey);
-            cell.addEventListener('input', calculateRowTotal);
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('equipmentCostTableContainer');
+        if (container) {
+            container.appendChild(createEquipmentCostTable());
+            attachEnterKeyHandler();
+        }
+        attachCalculationHandlersForCostBreakdownTables();
+    });
+
+    function attachCalculationHandlersForCostBreakdownTables() {
+        const tableIds = [
+            'chainLinkCostTable',
+            'aluminumCostTable',
+            'woodCostTable',
+            'pvcCostTable',
+            'otherCostTable'
+        ];
+
+        tableIds.forEach(tableId => {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            table.querySelectorAll('tbody tr').forEach(row => {
+                const qtyCell = row.cells[0]; // Assuming QTY is the first column
+                const costCell = row.cells[2]; // Assuming Actual Cost Per Unit is the third column
+                const totalCell = row.cells[3]; // Assuming Total is the fourth column
+
+                function calculateTotal() {
+                    const qty = parseFloat(qtyCell.innerText) || 0;
+                    const cost = parseFloat(costCell.innerText) || 0;
+                    const total = qty * cost;
+                    totalCell.innerText = `$${total.toFixed(2)}`;
+                }
+
+                qtyCell.addEventListener('input', calculateTotal);
+                costCell.addEventListener('input', calculateTotal);
+            });
         });
     }
 
-    function calculateRowTotal(event) {
-        const currentCell = event.target;
-        const currentRow = currentCell.parentElement;
-        const qtyCell = currentRow.cells[0];
-        const costCell = currentRow.cells[2];
-        const totalCell = currentRow.cells[3];
+    function showBreakdown() {
+        const gateOption = document.getElementById('gateOption').value;
+        const materialBreakdowns = document.getElementById('materialBreakdowns');
+        materialBreakdowns.innerHTML = ''; // Clear previous content
 
-        const qty = parseFloat(qtyCell.innerText) || 0;
-        const cost = parseFloat(costCell.innerText) || 0;
-        const total = qty * cost;
+        const selectedMaterials = document.querySelectorAll('#materialSelection input[type="checkbox"]:checked');
+        selectedMaterials.forEach(material => {
+            const materialType = material.value;
+            const breakdownSection = document.createElement('div');
+            breakdownSection.className = 'breakdown-section mt-4';
+            breakdownSection.innerHTML = `<h2>${materialType} Cost Breakdown</h2>`;
+            let table;
+            if (materialType === 'Wood') {
+                table = createWoodCostTable(30); // Adjust the number of rows as needed
+            } else {
+                table = createMaterialCostTable(10);
+            }
+            breakdownSection.appendChild(table);
+            breakdownSection.innerHTML += '<div class="add-row-btn" onclick="addRow(this.previousElementSibling.id)">+ Add Row</div>';
+            materialBreakdowns.appendChild(breakdownSection);
+        });
 
-        totalCell.innerText = `$${total.toFixed(2)}`;
+        if (selectedMaterials.length > 0) {
+            materialBreakdowns.classList.remove('hidden');
+        } else {
+            materialBreakdowns.classList.add('hidden');
+        }
+
+        if (gateOption === 'Yes') {
+            document.getElementById('gateBreakdown').classList.remove('hidden');
+            updateGateCostTable();
+        } else {
+            document.getElementById('gateBreakdown').classList.add('hidden');
+        }
+
+        document.getElementById('additionalBreakdowns').classList.remove('hidden');
+        updateLaborCostTable();
+        updateEquipmentCostTable();
+        updateOperatorCostTable();
+        updateMiscCostTable();
+
+        // Attach event listeners to all editable cells
+        const editableCells = document.querySelectorAll('td[contenteditable="true"]');
+        editableCells.forEach(cell => {
+            cell.addEventListener('input', calculateTotals);
+        });
+
+        calculateTotals(); // Initial calculation
+        attachCalculationHandlersForCostBreakdownTables(); // Attach handlers after showing tables
     }
-
-    document.addEventListener('DOMContentLoaded', attachEnterKeyHandler);
 </script>
+
 <script>
     function handleEnterKey(event) {
         if (event.key === 'Enter') {
